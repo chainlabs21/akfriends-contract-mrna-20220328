@@ -180,7 +180,7 @@ contract KIP17 is KIP13, IKIP17 {
      */
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public {
         transferFrom(from, to, tokenId);
-        require(_checkOnKIP17Received(from, to, tokenId, _data), "KIP17: transfer to non KIP17Receiver implementer");
+       // require(_checkOnKIP17Received(from, to, tokenId, _data), "KIP17: transfer to non KIP17Receiver implementer");
     }
 
     /**
@@ -283,14 +283,11 @@ contract KIP17 is KIP13, IKIP17 {
      */
     function _checkOnKIP17Received(address from, address to, uint256 tokenId, bytes memory _data)
         internal returns (bool)
-    {
-        bool success; 
+    {        bool success; 
         bytes memory returndata;
-
         if (!to.isContract()) {
             return true;
         }
-
         // Logic for compatibility with ERC721.
         (success, returndata) = to.call(
             abi.encodeWithSelector(_ERC721_RECEIVED, msg.sender, from, tokenId, _data)
@@ -298,14 +295,12 @@ contract KIP17 is KIP13, IKIP17 {
         if (returndata.length != 0 && abi.decode(returndata, (bytes4)) == _ERC721_RECEIVED) {
             return true;
         }
-
         (success, returndata) = to.call(
             abi.encodeWithSelector(_KIP17_RECEIVED, msg.sender, from, tokenId, _data)
         );
         if (returndata.length != 0 && abi.decode(returndata, (bytes4)) == _KIP17_RECEIVED) {
             return true;
         }
-
         return false;
     }
 
