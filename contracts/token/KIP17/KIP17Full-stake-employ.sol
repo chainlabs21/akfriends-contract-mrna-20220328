@@ -35,10 +35,16 @@ contract KIP17FullStakeEmploy is KIP17
 	uint256 public _reward_amount = 1 * 10**18 ;
 	address public _owner ;
 	mapping (address => mapping ( uint256 => uint256 )) public _deposit_time ; // user => token id => timestamp
-	constructor (string memory name, string memory symbol) public KIP17Metadata(name, symbol) { // solhint-disable-previous-line no-empty-blocks
+	mapping (address => mapping ( uint256 => uint256 )) public _withdraw_time ; // 
+	constructor (string memory name
+		, string memory symbol
+		, address __reward_token
+		) public KIP17Metadata(name, symbol) { // solhint-disable-previous-line no-empty-blocks
 		_owner = msg.sender ;
-		for (uint256 i=1; i<=5; i++ ) { mint( address(0x5c7552f154D81a99e2b5678fC5fD7d1a4085d8d7) , i ) ;}
-		for (uint256 i=6; i<=13; i++ ) { mint( address(0xCF529119C86eFF8d139Ce8CFfaF5941DA94bae5b) , i ) ;}
+		_reward_token = __reward_token;
+		addMinter ( address(this)) ;
+//		for (uint256 i=1; i<=5; i++ ) { mint( address(0x5c7552f154D81a99e2b5678fC5fD7d1a4085d8d7) , i ) ;}
+//		for (uint256 i=6; i<=13; i++ ) { mint( address(0xCF529119C86eFF8d139Ce8CFfaF5941DA94bae5b) , i ) ;}
 	}
 	function set_reward_token ( address _address ) public {
   	require ( msg.sender == _owner , "ERR() not privileged") ;
@@ -46,8 +52,9 @@ contract KIP17FullStakeEmploy is KIP17
   }
 /********* */
 	function withdraw ( address _erc721 , uint256 _tokenid , address _to ) public {
-		safeTransferFrom ( address ( this ) , _to , _tokenid );
+		KIP17 (_erc721).safeTransferFrom ( address ( this ) , _to , _tokenid );
 		burn ( _tokenid ) ;
+		_withdraw_time [ msg.sender ] [ _tokenid ] = block.timestamp ;
 //		IKIP17 ( _erc721 ).transfer ( _to , _tokenid ) ;
 //		emit Withdraw ( _erc721 , _tokenid ) ;
 	}
@@ -55,12 +62,13 @@ contract KIP17FullStakeEmploy is KIP17
 		uint256 N = _tokenids.length ;
 		for ( uint256 i = 0 ; i<N;i++){
 			uint256 tokenid = _tokenids[ i ] ;
-			safeTransferFrom ( address ( this ) , _to , tokenid );
+			KIP17 (_erc721).safeTransferFrom ( address ( this ) , _to , tokenid );
 			burn ( tokenid ) ;
+			_withdraw_time [ msg.sender ] [ tokenid ] = block.timestamp ;
 //			_balances [msg.sender][ _tokenids [ i ] ] = 0 ;
 //			IKIP17( _erc721 ).transfer ( _to , _tokenids[ i ]) ;
 		}
-		emit Withdraw ( _erc721 , _tokenids[ 0 ] ) ;
+//		emit Withdraw ( _erc721 , _tokenids[ 0 ] ) ;
 	}
 /********* */
 	function deposit ( address _erc721, uint256 _tokenid ) public {
@@ -73,7 +81,7 @@ contract KIP17FullStakeEmploy is KIP17
 //		_count_deposited += 1 ;
     if ( IERC20( _reward_token ).balanceOf( address(this) ) >= _reward_amount ) {
     	IERC20 (_reward_token).transfer ( msg.sender , _reward_amount ) ;
-    } 
+    }
 		else {}
 		_deposit_time [ msg.sender ][ _tokenid ] = block.timestamp ;
 //		emit Deposit ( _erc721 , _tokenid );
