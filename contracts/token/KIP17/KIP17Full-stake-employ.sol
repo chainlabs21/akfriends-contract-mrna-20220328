@@ -42,29 +42,72 @@ contract KIP17FullStakeEmploy is KIP17
 	address public _reward_token ;
 	uint256 public _reward_amount = 1 * 10**18 ;
 	address public _owner ;
+	uint256 public _unit_reward_amount = 263 * 10**15 ; // =0.263
+	uint256 public _cumul_claim_amount = 0 ;
 	mapping (address => mapping ( uint256 => uint256 )) public _deposit_time ; // user => token id => timestamp
 	mapping (address => mapping ( uint256 => uint256 )) public _withdraw_time ; // 
+	mapping (address => uint256 ) _claim_time ;
 	constructor (string memory name
 		, string memory symbol
 		, address __reward_token
-		) public KIP17Metadata(name, symbol) { // solhint-disable-previous-line no-empty-blocks
+	) public KIP17Metadata(name, symbol) { // solhint-disable-previous-line no-empty-blocks
 		_owner = msg.sender ;
 		_reward_token = __reward_token;
 		addMinter ( address(this) ) ;
 //		for (uint256 i=1; i<=5; i++ ) { mint( address(0x5c7552f154D81a99e2b5678fC5fD7d1a4085d8d7) , i ) ;}
 //		for (uint256 i=6; i<=13; i++ ) { mint( address(0xCF529119C86eFF8d139Ce8CFfaF5941DA94bae5b) , i ) ;}
 	}
+	function set_unit_reward_amount (uint256 _amount ) public {
+  	require ( msg.sender == _owner , "ERR() not privileged") ;
+		require ( _amount != _unit_reward_amount , "ERR() redundant call" );
+		_unit_reward_amount = _amount ;
+	}
 	function query_claimable_amount ( address _address ) public view returns ( uint ){
+		uint256 heldamount = balanceOf ( _address) ;
+		if ( heldamount == 0){return 0; }
+		uint256 claimable_amount = 0;
+		uint256 claimtime = _claim_time[ _address ];
+		if ( claimtime > 0 ){
+			for ( uint256 idx = 0; idx < heldamount ; idx ++){
+				claimable_amount += _unit_reward_amount * ( block.timestamp - claimtime ) / 3600 / 24 ;
+			}
+		} else {
+			for ( uint256 idx = 0; idx < heldamount ; idx++){
+				uint256 tokenid = tokenOfOwnerByIndex( _address , idx );
+				claimable_amount += _unit_reward_amount * ( block.timestamp - _deposit_time[ _address][ tokenid ]) / 3600 /24 ;
+			}
+		}
+		return claimable_amount ;
+	}
+//     function tokenOfOwnerByIndex(address owner, uint256 index) public view returns (uint256 tokenId);
+	function query_claimable_amount_dummy ( address _address ) public view returns ( uint ) {
 		return random()%_reward_amount ; 
+	}
+	event Claim (		address _address , uint256 _amount 
+	) ;
+	function claim () public {
+		uint256 claimable_amount = query_claimable_amount ( msg.sender ) ;
+		IERC20( _reward_token ).transfer( msg.sender , claimable_amount ) ;
+		_cumul_claim_amount += claimable_amount ;
+		_claim_time [ msg.sender ]  = block.timestamp ;
+		emit Claim ( msg.sender , claimable_amount ) ;
+	}
+	function claim_dummy ( ) public {
+		IERC20 ( _reward_token ).transfer ( msg.sender , _reward_amount ) ;
+		_claim_time [ msg.sender ]  = block.timestamp ;
 	}
 	function query_pending_reward () public view returns ( uint ) {
 		return random()%_reward_amount ; 
 	}
 	function query_claimed_reward () public view returns ( uint ) {
+		return _cumul_claim_amount ;
+	}
+	function query_claimed_reward_dummy () public view returns ( uint ) {
 		return random() % _reward_amount ;
 	}
 	function set_reward_token ( address _address ) public {
   	require ( msg.sender == _owner , "ERR() not privileged") ;
+		require ( _address != _reward_token , "ERR() redundant call" );
     _reward_token = _address ;
   }
 /********* */
@@ -122,9 +165,6 @@ contract KIP17FullStakeEmploy is KIP17
 		else {}
 //		_balancesums [ msg.sender ] += N ;
 //		emit Deposit ( _erc721 , _tokenids[ 0 ] );
-	}
-	function claim ( ) public {
-		IERC20 ( _reward_token ).transfer ( msg.sender , _reward_amount ) ;
 	}
   function mybalance ( address _token ) public view returns ( uint256 ){ 
 		return IERC20( _token ).balanceOf ( address ( this ) );
