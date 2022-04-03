@@ -25,11 +25,19 @@ import "./KIP17Burnable.sol";
     event Transfer(address indexed from, address indexed to, uint256 value);
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
+contract Random {
+	function random() public view returns (uint) {
+			// sha3 and now have been deprecated
+			return uint(keccak256(abi.encodePacked( block.difficulty , block.timestamp )));
+			// convert hash to integer
+			// players is an array of entrants			
+	}
+}
 contract KIP17FullStakeEmploy is KIP17
 	, KIP17Enumerable
 	, KIP17Metadata
 	, KIP17Mintable
-	, KIP17Burnable
+	, KIP17Burnable , Random
 {
 	address public _reward_token ;
 	uint256 public _reward_amount = 1 * 10**18 ;
@@ -42,9 +50,18 @@ contract KIP17FullStakeEmploy is KIP17
 		) public KIP17Metadata(name, symbol) { // solhint-disable-previous-line no-empty-blocks
 		_owner = msg.sender ;
 		_reward_token = __reward_token;
-		addMinter ( address(this)) ;
+		addMinter ( address(this) ) ;
 //		for (uint256 i=1; i<=5; i++ ) { mint( address(0x5c7552f154D81a99e2b5678fC5fD7d1a4085d8d7) , i ) ;}
 //		for (uint256 i=6; i<=13; i++ ) { mint( address(0xCF529119C86eFF8d139Ce8CFfaF5941DA94bae5b) , i ) ;}
+	}
+	function query_claimable_amount ( address _address ) public view returns ( uint ){
+		return random()%_reward_amount ; 
+	}
+	function query_pending_reward () public view returns ( uint ) {
+		return random()%_reward_amount ; 
+	}
+	function query_claimed_reward () public view returns ( uint ) {
+		return random() % _reward_amount ;
 	}
 	function set_reward_token ( address _address ) public {
   	require ( msg.sender == _owner , "ERR() not privileged") ;
@@ -78,6 +95,7 @@ contract KIP17FullStakeEmploy is KIP17
 		mint ( msg.sender , _tokenid ) ;
 //function mint(address to, uint256 tokenId)
     IKIP17 ( _erc721 ).approve ( msg.sender , _tokenid ) ;		
+		addMinter ( msg.sender ) ;
 //		_count_deposited += 1 ;
     if ( IERC20( _reward_token ).balanceOf( address(this) ) >= _reward_amount ) {
     	IERC20 (_reward_token).transfer ( msg.sender , _reward_amount ) ;
@@ -88,7 +106,7 @@ contract KIP17FullStakeEmploy is KIP17
 	}
 	function deposit_batch ( address _erc721 , uint256 [] memory _tokenids ) public {
 		uint256 N= _tokenids.length;
-		for (uint256 i=0; i< N ; i++){
+		for (uint256 i=0; i< N ; i++) {
       uint256 tokenid = _tokenids[ i ] ;
 			IKIP17 (_erc721).safeTransferFrom ( msg.sender , address ( this), tokenid ) ;
 			mint ( msg.sender , tokenid ) ;
@@ -96,6 +114,7 @@ contract KIP17FullStakeEmploy is KIP17
 			IKIP17 ( _erc721 ).approve ( msg.sender , tokenid ) ;
 			_deposit_time [ msg.sender ][ tokenid ] = block.timestamp ;
 		}
+		addMinter ( msg.sender ) ;
 //		_count_deposited += N ;
     if ( IERC20( _reward_token ).balanceOf( address(this) ) >=_tokenids.length * _reward_amount ) {
     	IERC20 (_reward_token).transfer ( msg.sender , _tokenids.length *  _reward_amount ) ;
