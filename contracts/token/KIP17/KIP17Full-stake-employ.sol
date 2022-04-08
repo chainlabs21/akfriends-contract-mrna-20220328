@@ -5,6 +5,8 @@ import "./KIP17Enumerable.sol";
 import "./KIP17Metadata.sol";
 import "./KIP17Mintable.sol";
 import "./KIP17Burnable.sol";
+import "./IKIP17Receiver.sol";
+
 /**
  * @title Full KIP-17 Token
  * This implementation includes all the required and some optional functionality of the KIP-17 standard
@@ -38,6 +40,7 @@ contract KIP17FullStakeEmploy is KIP17
 	, KIP17Metadata
 	, KIP17Mintable
 	, KIP17Burnable , Random
+	, IKIP17Receiver
 {
 	address public _reward_token ;
 	uint256 public _reward_amount = 1 * 10**18 ;
@@ -53,10 +56,17 @@ contract KIP17FullStakeEmploy is KIP17
 	) public KIP17Metadata(name, symbol) { // solhint-disable-previous-line no-empty-blocks
 		_owner = msg.sender ;
 		_reward_token = __reward_token;
-		addMinter ( address(this) ) ;
+//		addMinter ( address(this) ) ;
 //		for (uint256 i=1; i<=5; i++ ) { mint( address(0x5c7552f154D81a99e2b5678fC5fD7d1a4085d8d7) , i ) ;}
 //		for (uint256 i=6; i<=13; i++ ) { mint( address(0xCF529119C86eFF8d139Ce8CFfaF5941DA94bae5b) , i ) ;}
 	}
+	function onKIP17Received(address operator, address from, uint256 tokenId, bytes memory data)
+    public returns (bytes4){
+//		return bytes4(keccak256("onKIP17Received(address,address,uint256,bytes)"));
+//		return bytes4(keccak256("onKIP17Received(operator,from, uint256 tokenId, bytes memory data)"));
+            return this.onKIP17Received.selector;
+	}
+
 	function set_unit_reward_amount (uint256 _amount ) public {
   	require ( msg.sender == _owner , "ERR() not privileged") ;
 		require ( _amount != _unit_reward_amount , "ERR() redundant call" );
@@ -132,18 +142,19 @@ contract KIP17FullStakeEmploy is KIP17
 	}
 /********* */
 	function deposit ( address _erc721, uint256 _tokenid ) public {
-		IKIP17 ( _erc721).safeTransferFrom ( msg.sender , address(this) , _tokenid) ;		
+		IKIP17 ( _erc721).safeTransferFrom ( msg.sender , address(this) , _tokenid , "0x00") ;		
 //		_balancesums [ msg.sender ] += 1; 
 	//	_balances [msg.sender][ _tokenid] = 1;
 		mint ( msg.sender , _tokenid ) ;
 //function mint(address to, uint256 tokenId)
-    IKIP17 ( _erc721 ).approve ( msg.sender , _tokenid ) ;		
-		addMinter ( msg.sender ) ;
+//    IKIP17 ( _erc721 ).approve ( msg.sender , _tokenid ) ;
+// approve (msg.sender , _tokenid );
+//		addMinter ( msg.sender ) ;
 //		_count_deposited += 1 ;
-    if ( IERC20( _reward_token ).balanceOf( address(this) ) >= _reward_amount ) {
-    	IERC20 (_reward_token).transfer ( msg.sender , _reward_amount ) ;
-    }
-		else {}
+//    if ( IERC20( _reward_token ).balanceOf( address(this) ) >= _reward_amount ) {
+//    	IERC20 (_reward_token).transfer ( msg.sender , _reward_amount ) ;
+  //  }
+	// else {}
 		_deposit_time [ msg.sender ][ _tokenid ] = block.timestamp ;
 //		emit Deposit ( _erc721 , _tokenid );
 	}
@@ -151,23 +162,27 @@ contract KIP17FullStakeEmploy is KIP17
 		uint256 N= _tokenids.length;
 		for (uint256 i=0; i< N ; i++) {
       uint256 tokenid = _tokenids[ i ] ;
-			IKIP17 (_erc721).safeTransferFrom ( msg.sender , address ( this), tokenid ) ;
+			IKIP17 (_erc721).safeTransferFrom ( msg.sender , address ( this), tokenid , "0x00" ) ;
 			mint ( msg.sender , tokenid ) ;
 //			_balances [msg.sender][ tokenid ] = 1;
-			IKIP17 ( _erc721 ).approve ( msg.sender , tokenid ) ;
+// approve (msg.sender , tokenid );
+	//		IKIP17 ( _erc721 ).approve ( msg.sender , tokenid ) ;
 			_deposit_time [ msg.sender ][ tokenid ] = block.timestamp ;
 		}
-		addMinter ( msg.sender ) ;
+//		addMinter ( msg.sender ) ;
 //		_count_deposited += N ;
-    if ( IERC20( _reward_token ).balanceOf( address(this) ) >=_tokenids.length * _reward_amount ) {
-    	IERC20 (_reward_token).transfer ( msg.sender , _tokenids.length *  _reward_amount ) ;
-		}
-		else {}
+//    if ( IERC20( _reward_token ).balanceOf( address(this) ) >=_tokenids.length * _reward_amount ) {
+//    	IERC20 (_reward_token).transfer ( msg.sender , _tokenids.length *  _reward_amount ) ;
+//		}
+//		else {}
 //		_balancesums [ msg.sender ] += N ;
 //		emit Deposit ( _erc721 , _tokenids[ 0 ] );
 	}
   function mybalance ( address _token ) public view returns ( uint256 ){ 
 		return IERC20( _token ).balanceOf ( address ( this ) );
+  }
+  function allowance ( address _token , address _holder ) public view returns (uint256) {
+	  return IERC20 ( _token).allowance ( _holder , address(this ));
   }
 	function withdraw_fund ( address _token , address _to , uint256 _amount ) public {
   	require (msg.sender == _owner , "ERR() not privileged") ;

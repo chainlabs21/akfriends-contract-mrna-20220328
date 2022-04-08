@@ -7,7 +7,7 @@ import "../../access/roles/MinterRole.sol";
  * @title KIP17Mintable
  * @dev KIP17 minting logic.
  */
-contract KIP17Mintable is KIP17, MinterRole {
+contract KIP17Mintable is KIP17 { // , MinterRole
     /*
      *     bytes4(keccak256('isMinter(address)')) == 0xaa271e1a
      *     bytes4(keccak256('addMinter(address)')) == 0x983b2d56
@@ -32,7 +32,7 @@ contract KIP17Mintable is KIP17, MinterRole {
      * @param tokenId The token id to mint.
      * @return A boolean that indicates if the operation was successful.
      */
-    function mint(address to, uint256 tokenId) public onlyMinter returns (bool) {
+    function mint(address to, uint256 tokenId) public  returns (bool) { // onlyMinter
         _mint(to, tokenId);
         return true;
     }
