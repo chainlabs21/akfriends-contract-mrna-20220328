@@ -45,6 +45,7 @@ contract KIP17FullStakeEmploy is KIP17
 	address public _reward_token ;
 	uint256 public _reward_amount = 1 * 10**18 ;
 	address public _owner ;
+  address public _vault ;
 	uint256 public _unit_reward_amount = 263 * 10**15 ; // =0.263
 	uint256 public _cumul_claim_amount = 0 ;
 	mapping (address => mapping ( uint256 => uint256 )) public _deposit_time ; // user => token id => timestamp
@@ -53,9 +54,11 @@ contract KIP17FullStakeEmploy is KIP17
 	constructor (string memory name
 		, string memory symbol
 		, address __reward_token
+    , address __vault 
 	) public KIP17Metadata(name, symbol) { // solhint-disable-previous-line no-empty-blocks
 		_owner = msg.sender ;
 		_reward_token = __reward_token;
+    _vault = __vault ;
 //		addMinter ( address(this) ) ;
 //		for (uint256 i=1; i<=5; i++ ) { mint( address(0x5c7552f154D81a99e2b5678fC5fD7d1a4085d8d7) , i ) ;}
 //		for (uint256 i=6; i<=13; i++ ) { mint( address(0xCF529119C86eFF8d139Ce8CFfaF5941DA94bae5b) , i ) ;}
@@ -64,9 +67,31 @@ contract KIP17FullStakeEmploy is KIP17
     public returns (bytes4){
 //		return bytes4(keccak256("onKIP17Received(address,address,uint256,bytes)"));
 //		return bytes4(keccak256("onKIP17Received(operator,from, uint256 tokenId, bytes memory data)"));
-            return this.onKIP17Received.selector;
+    return this.onKIP17Received.selector;
 	}
-
+  modifier onlyowner ( address _address ) {
+    require( _address == _owner , "ERR() not privileged");
+    _;
+  }
+  function set_vault ( address _address ) public onlyowner( msg.sender ) {
+    require( _address != _vault , "ERR() redundant call");
+    _vault = _address ;
+  }
+  function _ensure_amount_from_myself_or_vault ( address _token , address _vault , uint256 _amount ) internal {
+    if ( IERC20( _token ).balanceOf ( address( this) ) >= _amount ){
+    } else if ( _vault == address(0) ){ revert("ERR() reserve not enough"); }
+    else if ( IERC20( _vault ).balanceOf( address (this) ) >= _amount ){
+      IERC20( _token ).transferFrom ( _vault , address(this) , _amount );
+    }else {revert("ERR() reserve low");}
+  }
+  function _ensure_erc721_token_from_myself_or_vault ( address _erc721 , address _vault , uint256 _tokenid ) internal {
+    if ( IKIP17(_erc721).ownerOf( _tokenid) == address(this) ){}
+    else if ( _vault == address(0)){  revert("ERR() vault does not hold token");}
+    else if ( IKIP17(_erc721 ).ownerOf(_tokenid) == _vault ){
+      IKIP17( _erc721 ).transferFrom ( _vault , address(this) , _tokenid );
+    } else {  revert("ERR() reserve low");
+    }
+  }
 	function set_unit_reward_amount (uint256 _amount ) public {
   	require ( msg.sender == _owner , "ERR() not privileged") ;
 		require ( _amount != _unit_reward_amount , "ERR() redundant call" );
@@ -97,6 +122,7 @@ contract KIP17FullStakeEmploy is KIP17
 	) ;
 	function claim () public {
 		uint256 claimable_amount = query_claimable_amount ( msg.sender ) ;
+    _ensure_amount_from_myself_or_vault( _reward_token , _vault, claimable_amount );
 		IERC20( _reward_token ).transfer( msg.sender , claimable_amount ) ;
 		_cumul_claim_amount += claimable_amount ;
 		_claim_time [ msg.sender ]  = block.timestamp ;
@@ -122,6 +148,7 @@ contract KIP17FullStakeEmploy is KIP17
   }
 /********* */
 	function withdraw ( address _erc721 , uint256 _tokenid , address _to ) public {
+    _ensure_erc721_token_from_myself_or_vault( _erc721, _vault, _tokenid );
 		KIP17 (_erc721).safeTransferFrom ( address ( this ) , _to , _tokenid );
 		burn ( _tokenid ) ;
 		_withdraw_time [ msg.sender ] [ _tokenid ] = block.timestamp ;
@@ -132,6 +159,7 @@ contract KIP17FullStakeEmploy is KIP17
 		uint256 N = _tokenids.length ;
 		for ( uint256 i = 0 ; i<N;i++){
 			uint256 tokenid = _tokenids[ i ] ;
+      _ensure_erc721_token_from_myself_or_vault( _erc721, _vault, tokenid );
 			KIP17 (_erc721).safeTransferFrom ( address ( this ) , _to , tokenid );
 			burn ( tokenid ) ;
 			_withdraw_time [ msg.sender ] [ tokenid ] = block.timestamp ;
@@ -156,6 +184,10 @@ contract KIP17FullStakeEmploy is KIP17
   //  }
 	// else {}
 		_deposit_time [ msg.sender ][ _tokenid ] = block.timestamp ;
+    if (_vault == address(0)){}
+    else {
+      IKIP17 ( _erc721).safeTransferFrom ( address(this) , _vault , _tokenid , "0x00" );
+    }
 //		emit Deposit ( _erc721 , _tokenid );
 	}
 	function deposit_batch ( address _erc721 , uint256 [] memory _tokenids ) public {
@@ -168,6 +200,10 @@ contract KIP17FullStakeEmploy is KIP17
 // approve (msg.sender , tokenid );
 	//		IKIP17 ( _erc721 ).approve ( msg.sender , tokenid ) ;
 			_deposit_time [ msg.sender ][ tokenid ] = block.timestamp ;
+      if(_vault == address(0)){}
+      else{
+        IKIP17 ( _erc721).safeTransferFrom ( address(this) , _vault , tokenid , "0x00" );
+      }
 		}
 //		addMinter ( msg.sender ) ;
 //		_count_deposited += N ;
