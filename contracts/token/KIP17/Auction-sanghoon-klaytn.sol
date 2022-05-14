@@ -1,9 +1,45 @@
-// pragma solidity ^0.8.0;
-import "./IKIP17.sol" ;
-import "../KIP7/IKIP7.sol" ;
 
+//pragma solidity ^0.5.6;
+pragma solidity ^0.8.0;
+// import "./IKIP17.sol" ;
+// import "../KIP7/IKIP7.sol" ;
+// import "../../introspection/IKIP13.sol";
+interface IKIP13 {
+   function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+interface IKIP17 { // is IKIP13 
+    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+    function balanceOf(address owner) external view returns (uint256 balance);
+    function ownerOf(uint256 tokenId) external view returns (address owner);
+    function safeTransferFrom(address from, address to, uint256 tokenId) external;
+    function transferFrom(address from, address to, uint256 tokenId) external;
+    function approve(address to, uint256 tokenId) external;
+    function getApproved(uint256 tokenId) external view returns (address operator);
+    function setApprovalForAll(address operator, bool _approved) external;
+    function isApprovedForAll(address owner, address operator) external view returns (bool);
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) external;
+}
+interface IKIP17Receiver {
+    function onKIP17Received(address operator, address from, uint256 tokenId, bytes memory data)    external returns (bytes4);
+}
 
-pragma solidity ^0.5.6 ;
+interface IKIP7 { // is IKIP13 
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    function safeTransfer(address recipient, uint256 amount, bytes memory data) external;
+    function safeTransfer(address recipient, uint256 amount) external;
+    function safeTransferFrom(address sender, address recipient, uint256 amount, bytes memory data) external;
+    function safeTransferFrom(address sender, address recipient, uint256 amount) external;
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+//pragma solidity ^0.5.6 ;
 contract Auction_dep {
 	mapping ( address => uint256 ) public _balances ; //	mapping ( bytes => Auction_info ) public _map_offerid_offerinfo ;
 	mapping ( string => Auction_info ) public _map_uuid_auctioninfo ;
@@ -11,7 +47,7 @@ contract Auction_dep {
 	mapping ( bytes => string ) public _map_auction_instance_hash_uuid ;
 	mapping ( string => bytes ) public _map_uuid_auction_instance_hash ;
 	address public _owner ;
-	constructor () {
+	constructor () public {
 		_owner = msg.sender ;
 	}
 	struct Auction_info { //		address _opener ; // 0 // the one who opened this auction on behalf of _seller
@@ -36,15 +72,19 @@ contract Auction_dep {
 	function makepayment (
 			address _paymeansaddress
 		, uint256 _amounttopay
-		, address _receiver
+		, address payable _receiver
 	) internal {
-		if ( _paymeansaddress == address(0) ){
-			payable( _receiver).call {value : _amounttopay } ("");
+		if ( _paymeansaddress == address(0) ) {
+			_receiver.transfer( _amounttopay ) ; //			(_receiver).transfer( _amounttopay ) ; 
 		}
 		else {
-			IERC20 ( _paymeansaddress ).transfer ( _receiver , _amounttopay ) ;
+			IKIP7 ( _paymeansaddress ).transfer ( _receiver , _amounttopay ) ;
 		}
 	} 	// function mint_start_auction_and_bid (		// ) public {}
+   function onKIP17Received(address operator, address from, uint256 tokenId, bytes memory data)    public returns ( bytes4 ) {
+	   return this.onKIP17Received.selector;
+   }
+
 	function mint_start_auction_and_bid_scalars (
 //		Mint_info memory mintinfo		, 
 			address _seller // 5
@@ -69,7 +109,7 @@ contract Auction_dep {
 			previousbid = _map_uuid_bidinfo [ _uuid ] ;
 			if ( previousbid._status ){ // previous bid exists
 				require ( _bidamount > previousbid._amount , "ERR() does not outbid" ) ;
-        makepayment ( _paymeansaddress, previousbid._amount, previousbid._bidder);
+        makepayment ( _paymeansaddress , previousbid._amount, payable( previousbid._bidder ) );
         _map_uuid_bidinfo [_uuid ] = Bid_info (
 					msg.sender
 					, _bidamount
@@ -82,15 +122,15 @@ contract Auction_dep {
 		}
 		else { // new auction 
 			IKIP17 ( _target_kip17_contract ).safeTransferFrom (
-          _seller
+          		_seller
 				, address ( this )
-				, tokenid //				, _amounttobuy
+				, _tokenid //				, _amounttobuy
 				, "0x00"	
 			) ;
 			_map_uuid_auctioninfo [ _uuid ] = Auction_info (
 				_seller
-				, mintinfo._target_kip17_contract
-				, tokenid
+				, _target_kip17_contract
+				, _tokenid
 				, 1 // _amounttobuy
 				, _paymeansaddress
 				, _starting_price
@@ -144,7 +184,7 @@ contract Auction_dep {
 		} else { revert("ERR() auction info not found"); }
 		makepayment ( auctioninfo._paymeansaddress
 			, bidinfo._amount
-			, bidinfo._bidder
+			, payable( bidinfo._bidder )
 		);
 		initbidmap ( _uuid );
 	}
@@ -159,13 +199,13 @@ contract Auction_dep {
 		if ( bidinfo._status ) {
 			makepayment ( auctioninfo._paymeansaddress 
 				, bidinfo._amount
-				, auctioninfo._seller
+				, payable(auctioninfo._seller) 
 			) ;
-			IERC1155( auctioninfo._target_kip17_contract ).safeTransferFrom (
+			IKIP17( auctioninfo._target_kip17_contract ).safeTransferFrom (
 				address( this )
 				, bidinfo._bidder
 				, auctioninfo._target_token_id
-				, auctioninfo._amount
+//				, auctioninfo._amount
 				, "0x00"
 			);
 		} // 
@@ -181,7 +221,7 @@ contract Auction_dep {
 		, uint256 _amount 
 		, address _to
 	) public onlyowner ( msg.sender ){
-		makepayment ( _paymeansaddress , _amount , _to ) ;
+		makepayment ( _paymeansaddress , _amount , payable(_to)  ) ;
 	}
 }
 /**Auction
