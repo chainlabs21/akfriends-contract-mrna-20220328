@@ -47,6 +47,11 @@ contract Auction_dep {
 	mapping ( bytes => string ) public _map_auction_instance_hash_uuid ;
 	mapping ( string => bytes ) public _map_uuid_auction_instance_hash ;
 	address public _owner ;
+	uint256 public _mode_dev0_prod1 =0 ; 
+	function set_mode_dev0_prod1 ( uint256 _state ) public {
+		require( _mode_dev0_prod1 != _state , "ERR() redundant call");
+		_mode_dev0_prod1 = _state;
+	}
 	constructor () public {
 		_owner = msg.sender ;
 	}
@@ -102,15 +107,15 @@ contract Auction_dep {
 			require( msg.value >= _bidamount , "ERR() amount not met");
 		} else {
 			if ( IKIP7( _paymeansaddress ).transferFrom ( msg.sender, address(this) , _bidamount ) ){}
-      else {revert( "ERR() amount not met") ; }
+      		else {revert( "ERR() amount not met") ; }
 		} // _balances [ msg.sender ] += _bidamount ; //		string memory auctionid = _uuid ;
 		Bid_info memory previousbid ;
 		if ( _map_uuid_auctioninfo [ _uuid ]._status ){  // already open
 			previousbid = _map_uuid_bidinfo [ _uuid ] ;
 			if ( previousbid._status ){ // previous bid exists
 				require ( _bidamount > previousbid._amount , "ERR() does not outbid" ) ;
-        makepayment ( _paymeansaddress , previousbid._amount, payable( previousbid._bidder ) );
-        _map_uuid_bidinfo [_uuid ] = Bid_info (
+        		makepayment ( _paymeansaddress , previousbid._amount, payable( previousbid._bidder ) );
+        		_map_uuid_bidinfo [_uuid ] = Bid_info (
 					msg.sender
 					, _bidamount
 					, block.timestamp
@@ -192,8 +197,10 @@ contract Auction_dep {
 		Auction_info memory auctioninfo = _map_uuid_auctioninfo [ _uuid ] ;
 		if ( auctioninfo._status ){}
 		else {revert("ERR() invalid offer"); }
-		if ( auctioninfo._expiry <= block.timestamp ){ }
-		else { revert("ERR() expiry not reached yet");
+		if ( _mode_dev0_prod1 == 0){		}
+		else {
+			if ( auctioninfo._expiry <= block.timestamp ){ }
+			else { revert("ERR() expiry not reached yet");		}
 		}
 		Bid_info memory bidinfo = _map_uuid_bidinfo [ _uuid ] ;
 		if ( bidinfo._status ) {
