@@ -1,6 +1,6 @@
 // pragma solidity ^0.8.0;
 import "./IKIP17.sol" ;
-import "./IKIP7.sol" ;
+import "../KIP7/IKIP7.sol" ;
 
 
 pragma solidity ^0.5.6 ;
