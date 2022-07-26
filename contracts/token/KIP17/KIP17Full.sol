@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "./KIP17.sol";
+import "./KIP17-custom-mint.sol";
 import "./KIP17Enumerable.sol";
 import "./KIP17Metadata.sol";
 import "./KIP17Mintable.sol";
