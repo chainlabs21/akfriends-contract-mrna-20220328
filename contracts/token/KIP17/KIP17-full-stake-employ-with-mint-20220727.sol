@@ -218,6 +218,7 @@ contract KIP17FullStakeEmploy is KIP17
 			, "0x00"
 			) ;
 		} else {
+			tokenid = IKIP17_2 ( _erc721 )._itemhash_tokenid ( _itemid ) ;
 		}
 		IKIP17 ( _erc721).safeTransferFrom ( msg.sender , address(this) , tokenid , "0x00") ;		
 		mint ( msg.sender , tokenid ) ;
