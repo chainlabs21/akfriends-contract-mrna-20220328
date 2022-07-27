@@ -224,14 +224,14 @@ contract Matcher_single_simple is // Ownable , Utils  ,//	Interface_to_vault	, /
 		} else {
 		}
 /**		if (admin_fee_amount>0) {
-			if ( vault_contract == address(0) ){ } // revert("ERR() vault address invalid"); }
-			else { // payable( vault_contract ).ca ll { value : admin_fee_amount } ( "" ) ; 
-			IERC20( _paymeansaddress ).transfer ( vault_contract , admin_fee_amount ) ;
+			if ( vault_ contract == address(0) ){ } // revert("ERR() vault address invalid"); }
+			else { // payable( vault_co ntract ).ca ll { value : admin_fee_amount } ( "" ) ; 
+			IERC20( _paymeansaddress ).transfer ( vault_co ntract , admin_fee_amount ) ;
 				emit DepositToVault(
 					address(this)
 					, admin_fee_amount
 					, uint256(SEND_TYPES.ADMIN_FEE_SPOT) 
-					, vault_contract
+					, vault_co ntract
 				); 
 				remaining_amount -= admin_fee_amount ;
 			}
