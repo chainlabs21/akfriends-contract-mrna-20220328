@@ -1,11 +1,12 @@
 pragma solidity ^0.5.0;
 
-import "./KIP17-custom-mint.sol";
+// import "./KIP17-custom-mint.sol";
+import "./KIP17.sol";
+
 import "./KIP17Enumerable.sol";
 import "./KIP17Metadata.sol";
 import "./KIP17Mintable.sol";
-/**
- * @title Full KIP-17 Token
+/**  * @title Full KIP-17 Token
  * This implementation includes all the required and some optional functionality of the KIP-17 standard
  * Moreover, it includes approve all functionality using operator terminology
  * @dev see http://kips.klaytn.com/KIPs/kip-17-non_fungible_token
