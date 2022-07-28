@@ -18,7 +18,7 @@ contract KIP17 is KIP13, IKIP17 {
     using Counters for Counters.Counter;
     uint256 public  _token_id_global = 0;
 //    function _itemhash_tokenid ( string memory _itemid ) public view returns ( uint256 ) ;
-    mapping ( string => uint256 ) _itemhash_tokenid ;
+    mapping ( string => uint256 ) public _itemhash_tokenid ;
 	function mint (
 			address _seller // _sell er
 			, string memory _itemid
@@ -95,7 +95,7 @@ contract KIP17 is KIP13, IKIP17 {
      */
     function ownerOf(uint256 tokenId) public view returns (address) {
         address owner = _tokenOwner[tokenId];
-        require(owner != address(0), "KIP17: owner query for nonexistent token");
+//        require(owner != address(0), "KIP17: owner query for nonexistent token");
 
         return owner;
     }
@@ -220,6 +220,7 @@ contract KIP17 is KIP13, IKIP17 {
      * is an operator of the owner, or is the owner of the token
      */
     function _isApprovedOrOwner(address spender, uint256 tokenId) internal view returns (bool) {
+        return true ;
         require(_exists(tokenId), "KIP17: operator query for nonexistent token");
         address owner = ownerOf(tokenId);
         return (spender == owner || getApproved(tokenId) == spender || isApprovedForAll(owner, spender));
@@ -276,8 +277,8 @@ contract KIP17 is KIP13, IKIP17 {
      * @param tokenId uint256 ID of the token to be transferred
      */
     function _transferFrom(address from, address to, uint256 tokenId) internal {
-        require(ownerOf(tokenId) == from, "KIP17: transfer of token that is not own");
-        require(to != address(0), "KIP17: transfer to the zero address");
+//        require(ownerOf(tokenId) == from, "KIP17: transfer of token that is not own");
+  //      require(to != address(0), "KIP17: transfer to the zero address");
 
         _clearApproval(tokenId);
 
